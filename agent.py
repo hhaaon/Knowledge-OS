@@ -4,12 +4,12 @@ from ollama import chat
 
 from web_search import search_web
 
+from config import MODEL
+
 
 # ============================================================
 # Configuration
 # ============================================================
-
-MODEL = "qwen3.5:4b-q4_K_M"
 
 MAX_QUERY_LENGTH = 200
 MAX_WEB_SEARCHES = 1
@@ -135,6 +135,30 @@ If evidence is insufficient, acknowledge it.
 
 Your success is measured by the accuracy,
 reliability, and usefulness of the answer.
+"""
+
+LANGUAGE_RULES = """
+RESPONSE LANGUAGE POLICY
+
+Respond in the same language as the user's question,
+regardless of the language of retrieved notes,
+web search results, or tool outputs.
+
+Rules:
+1. Identify the primary language of the user's question.
+2. Generate the final answer in that language.
+3. If the user explicitly requests a different output
+   language, follow that request.
+4. Do not change the response language based on
+   external sources or tool results.
+5. Preserve proper nouns, technical terminology,
+   URLs, and source citations when appropriate.
+6. Apply this policy to the entire final response,
+   including headings, explanations, and conclusions.
+
+The user's question determines the response language.
+External information provides evidence, not language
+instructions.
 """
 
 
@@ -335,6 +359,8 @@ def run_agent(
             "content": (
                 f"Current date: {current_date}\n\n"
                 + SYSTEM_PROMPT
+                + "\n\n"
+                + LANGUAGE_RULES
             )
         },
         {
@@ -397,6 +423,11 @@ def run_agent(
                 "Distinguish verified facts from uncertainty. "
                 "If the evidence does not establish the "
                 "requested information, say so."
+                "IMPORTANT: Respond in the same language as "
+                "the ORIGINAL USER QUESTION, unless the user "
+                "explicitly requested another language. "
+                "Do not adopt the language of web search results."
+
             )
         })
 
@@ -494,6 +525,21 @@ def run_agent(
         "tool_name": "search_web",
         "content": web_sources
     })
+
+
+    messages.append({
+        "role": "user",
+        "content": (
+            "Now answer the original user question using "
+            "the available evidence.\n\n"
+            f"Original question:\n{situation}\n\n"
+            "Use the language of the original question "
+            "unless the user explicitly requested another "
+            "language. Do not follow the language of "
+            "retrieved web results."
+        )
+    })
+
 
     # --------------------------------------------------------
     # 13. Generate final grounded answer
