@@ -83,3 +83,35 @@ def read_enhanced_note(
         return None
 
     return target.read_text(encoding="utf-8")
+
+
+def read_approved_note(
+    test_vault: Path,
+    relative_path: str,
+) -> str | None:
+    """Read an approved enhancement without writing files."""
+
+    relative = PurePosixPath(relative_path)
+
+    if (
+        relative.is_absolute()
+        or ".." in relative.parts
+        or "\\" in relative_path
+        or relative.suffix.lower() != ".md"
+    ):
+        raise ValueError("Invalid Markdown note path.")
+
+    approved_root = (test_vault / "approved").resolve()
+
+    target = (
+        approved_root / Path(*relative.parts)
+    ).resolve()
+
+    if not target.is_relative_to(approved_root):
+        raise ValueError("Note path escapes approved directory.")
+
+    if not target.is_file():
+        return None
+
+    return target.read_text(encoding="utf-8")
+
